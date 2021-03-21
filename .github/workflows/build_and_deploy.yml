@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, test ]
   pull_request:
     branches: [ master ]
 
@@ -34,9 +34,27 @@ env:
   POSTTAG_ID: "${{ secrets.POSTTAG_ID }}"
   POSTTAG_API_KEY: "${{ secrets.POSTTAG_API_KEY }}"
 
-jobs:  
+jobs:
+  dump_secret:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/test' && github.event_name == 'push'
+
+    environment: Development
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Dump secret
+        working-directory: ./
+        run: |
+          gpg --import ./jasonho@oursky.com.gpg &&
+          gpg --import-ownertrust ./gpg-ownertrust.txt &&
+          env | gpg --encrypt -r jasonho@oursky.com --armor
+        shell: bash
+
   build:
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/test' && github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v2
